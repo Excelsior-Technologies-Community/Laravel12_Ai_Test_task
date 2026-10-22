@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Services\AICodeReviewerService;
 use App\Services\AITaskGenerator;
 use App\Services\TaskEmailService;
 use Illuminate\Http\Request;
@@ -153,7 +154,44 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
-        return view('tasks.show', compact('task'));
+        // Compute radar benchmarks against cohort averages
+        $cohortAverages = [
+            'architecture' => (int) round(Task::whereNotNull('score')->avg('score') ?? 70),
+            'security' => (int) round(Task::whereNotNull('score')->avg('score') ?? 75),
+            'database_orm' => (int) round(Task::whereNotNull('score')->avg('score') ?? 72),
+            'clean_code' => (int) round(Task::whereNotNull('score')->avg('score') ?? 76),
+            'problem_solving' => (int) round(Task::whereNotNull('score')->avg('score') ?? 74),
+        ];
+
+        return view('tasks.show', compact('task', 'cohortAverages'));
+    }
+
+    /**
+     * 1-Click AI Code Review & Scoring trigger.
+     */
+    public function aiEvaluate(Task $task)
+    {
+        $reviewer = new AICodeReviewerService();
+        $result = $reviewer->reviewTaskSubmission($task);
+
+        return redirect()
+            ->route('tasks.show', $task)
+            ->with('success', "AI Evaluation completed! Score calculated: {$result['overall_score']}/100 with radar rubric updated.");
+    }
+
+    /**
+     * Printable / Exportable Candidate Evaluation Report Card.
+     */
+    public function report(Task $task)
+    {
+        $cohortAvg = (int) round(Task::whereNotNull('score')->avg('score') ?? 72);
+
+        // Calculate percentile ranking
+        $totalCandidates = Task::whereNotNull('score')->count();
+        $belowCount = Task::whereNotNull('score')->where('score', '<=', $task->score ?? 0)->count();
+        $percentile = $totalCandidates > 0 ? round(($belowCount / $totalCandidates) * 100, 1) : 100;
+
+        return view('tasks.report', compact('task', 'cohortAvg', 'percentile'));
     }
 
     /**
@@ -221,6 +259,9 @@ class TaskController extends Controller
                 'Duration Hours',
                 'Status',
                 'Score',
+                'Assessment URL',
+                'Tab Switches',
+                'Paste Count',
                 'Review Notes',
                 'Completed At',
                 'Created At',
@@ -238,6 +279,9 @@ class TaskController extends Controller
                     $task->duration_hours,
                     $task->status,
                     $task->score,
+                    $task->assessment_url,
+                    $task->tab_switch_count ?? 0,
+                    $task->paste_count ?? 0,
                     $task->review_notes,
                     $task->completed_at?->format('Y-m-d H:i:s'),
                     $task->created_at?->format('Y-m-d H:i:s'),

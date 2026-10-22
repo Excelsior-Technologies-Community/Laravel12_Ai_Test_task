@@ -626,16 +626,51 @@
                 {{-- Management Actions --}}
                 <div class="border-t pt-5 mb-5">
 
-                    <h4 class="font-bold text-lg mb-4">
-                        ⚙️ Task Actions
-                    </h4>
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-lg text-gray-800">
+                            ⚙️ Assessment Actions
+                        </h4>
+                        @if(($task->tab_switch_count ?? 0) > 0)
+                        <span class="text-xs px-2.5 py-1 rounded-full font-bold {{ $task->tab_switch_count >= 3 ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800' }}">
+                            🛡️ {{ $task->tab_switch_count }} Tab Switches
+                        </span>
+                        @endif
+                    </div>
 
                     <div class="flex flex-wrap gap-2">
+
+                        {{-- Candidate Assessment Portal --}}
+                        <a
+                            href="{{ $task->assessment_url }}"
+                            target="_blank"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded text-sm font-semibold flex items-center gap-1.5">
+                            💻 Open Portal
+                        </a>
+
+                        {{-- 1-Click AI Evaluation --}}
+                        <form
+                            method="POST"
+                            action="{{ route('tasks.ai_evaluate', $task) }}">
+                            @csrf
+                            <button
+                                type="submit"
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded text-sm font-bold flex items-center gap-1.5">
+                                ⚡ AI Evaluate
+                            </button>
+                        </form>
+
+                        {{-- Report Card --}}
+                        <a
+                            href="{{ route('tasks.report', $task) }}"
+                            target="_blank"
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 rounded text-sm font-semibold flex items-center gap-1.5">
+                            📊 Report Card
+                        </a>
 
                         {{-- View --}}
                         <a
                             href="{{ route('tasks.show', $task) }}"
-                            class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded">
+                            class="bg-gray-800 hover:bg-gray-900 text-white px-3.5 py-2 rounded text-sm font-semibold">
                             👁 View Details
                         </a>
 
